@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="uk" class="scroll-smooth">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ivory Café — Смак розкоші у кожній чашці</title>
+  <meta name="description" content="Ivory Café — спешіалті кава, десерти та гостинна атмосфера. Меню, галерея, локація та контакти в одна сторінці." />
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Tailwind config (опційно)
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          container: { center: true, padding: { DEFAULT: '1rem', lg: '1rem' }, screens: { lg: '1024px', xl: '1140px' } },
+          boxShadow: { soft: '0 10px 30px rgba(0,0,0,0.08)' },
+          borderRadius: { '2xl': '1rem' }
+        }
+      }
+    }
+  </script>
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="login.css">
+  <script>
+    // 1) Тема (dark/light)
+    const THEME_KEY = 'theme-dark';
+    const setThemeClass = (isDark) => document.documentElement.classList.toggle('dark', isDark);
+    (() => { try { setThemeClass(JSON.parse(localStorage.getItem(THEME_KEY) ?? 'true')); } catch { setThemeClass(true); } })();
+
+    // 2) Після завантаження ініціалізуємо всю взаємодію
+    window.addEventListener('DOMContentLoaded', () => {
+      const themeBtn = document.querySelector('#theme-toggle');
+      themeBtn?.addEventListener('click', () => {
+        const nowDark = !document.documentElement.classList.contains('dark');
+        setThemeClass(nowDark);
+        localStorage.setItem(THEME_KEY, JSON.stringify(nowDark));
+      });
+
+      // Мобільне меню
+      const mobileOpen = document.querySelector('#mobile-open');
+      const mobileClose = document.querySelector('#mobile-close');
+      const mobilePanel = document.querySelector('#mobile-panel');
+      mobileOpen?.addEventListener('click', () => mobilePanel?.setAttribute('data-hidden', 'false'));
+      mobileClose?.addEventListener('click', () => mobilePanel?.setAttribute('data-hidden', 'true'));
+      mobilePanel?.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener('click', () => mobilePanel.setAttribute('data-hidden', 'true')));
+
+      // Фільтрація/пошук/сортування меню
+      const qInput = document.querySelector('#menu-search');
+      const sortBtns = document.querySelectorAll('[data-sort]');
+      const catBtns = document.querySelectorAll('[data-cat]');
+      const cards = Array.from(document.querySelectorAll('[data-item]'));
+      let activeCat = null; let sortBy = 'popular';
+
+      const apply = () => {
+        const q = (qInput?.value || '').trim().toLowerCase();
+        cards.forEach(card => {
+          const name = card.dataset.name.toLowerCase();
+          const tag = card.dataset.tag;
+          const matchQ = !q || name.includes(q);
+          const matchCat = !activeCat || tag === activeCat;
+          card.style.display = (matchQ && matchCat) ? '' : 'none';
+        });
+        // Сортування: змінюємо порядок DOM у батьківській сітці
+        const grid = document.querySelector('#menu-grid');
+        const visible = cards.filter(c => c.style.display !== 'none');
+        visible.sort((a,b) => {
+          if (sortBy === 'price') return Number(a.dataset.price) - Number(b.dataset.price);
+          if (sortBy === 'popular') return Number(b.dataset.rating) - Number(a.dataset.rating);
+          return 0;
+        });
+        visible.forEach(c => grid.appendChild(c));
+      };
+
+      qInput?.addEventListener('input', apply);
+      sortBtns.forEach(btn => btn.addEventListener('click', () => { sortBy = btn.dataset.sort; apply(); setActive(sortBtns, btn); }));
+      catBtns.forEach(btn => btn.addEventListener('click', () => { activeCat = btn.dataset.cat || null; apply(); setActive(catBtns, btn); }));
+
+      function setActive(btns, current){ btns.forEach(b => b.classList.remove('btn-primary')); current.classList.add('btn-primary'); }
+      apply();
+
+      // Проста обробка форми
+      const form = document.querySelector('#contact-form');
+      form?.addEventListener('submit', (e) => { e.preventDefault(); alert('Дякуємо! Ми відповімо найближчим часом.'); form.reset(); });
+    });
+  </script>
+</head>
+<body class="bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50">
+  <!-- Header -->
+  <header class="sticky top-0 z-50 backdrop-blur border-b border-black/10 dark:border-white/10 bg-white/70 dark:bg-neutral-950/60">
+    <div class="container">
+      <div class="flex items-center justify-between h-16">
+        <a href="#home" class="flex items-center gap-2 font-semibold">
+          
+          <span class="text-lg">Ivory Café</span>
+        </a>
+        <nav class="hidden md:flex items-center gap-6" aria-label="Головна навігація">
+          <a href="#menu" class="btn btn-ghost">Меню</a>
+          <a href="#about" class="btn btn-ghost">Про нас</a>
+          <a href="#gallery" class="btn btn-ghost">Галерея</a>
+          <a href="#vacancies" class="btn btn-ghost">Вакансії</a>
+          <a href="#visit" class="btn btn-ghost">Локація</a>
+          <a href="#reviews" class="btn btn-ghost">Відгуки</a>
+          <a href="#contact" class="btn btn-ghost">Контакти</a>
+          <button id="theme-toggle" class="btn btn-ghost" aria-label="Змінити тему">🌓</button>
+        </nav>
+        <div class="md:hidden flex items-center gap-2">
+          <button id="theme-toggle" class="btn btn-ghost" aria-label="Змінити тему">🌓</button>
+          <button id="mobile-open" class="btn" aria-label="Відкрити меню">☰</button>
+        </div>
+      </div>
+    </div>
+    <!-- Mobile panel -->
+    <div id="mobile-panel" data-hidden="true" class="fixed inset-0 z-50 md:hidden">
+      <div class="absolute inset-0 bg-black/50" aria-hidden="true"></div>
+      <aside class="absolute right-0 top-0 h-full w-72 bg-white dark:bg-neutral-900 border-l border-black/10 dark:border-white/10 p-4 flex flex-col gap-2">
+        <div class="flex items-center justify-between"><strong>Інфо</strong> <button id="mobile-close" class="btn btn-ghost">✕</button></div>
+        <nav class="grid gap-3" aria-label="Мобільна навігація">
+          <a class="btn btn-ghost tracking-wider" href="#menu">Меню</a>
+          <a class="btn btn-ghost tracking-wider" href="#about">Про нас</a>
+          <a class="btn btn-ghost tracking-wider" href="#gallery">Галерея</a>
+          <a class="btn btn-ghost tracking-wider" href="#vacancies">Вакансії</a>
+          <a class="btn btn-ghost tracking-wider" href="#visit">Локація</a>
+          <a class="btn btn-ghost tracking-wider" href="#reviews">Відгуки</a>
+          <a class="btn btn-ghost tracking-wider" href="#contact">Контакти</a>
+        </nav>
+      </aside>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section id="home" class="relative overflow-hidden">
+    <div class="absolute inset-0 -z-10" style="background:
+      radial-gradient(1200px_600px_at_70%_-10%,rgba(120,119,198,0.18),transparent 60%),
+      radial-gradient(600px_300px_at_20%_10%,rgba(34,197,94,0.18),transparent 60%);"></div>
+    <div class="container py-20 md:py-28">
+      <div class="grid md:grid-cols-2 gap-10 items-center">
+        <div>
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border bg-white/70 dark:bg-neutral-900/60 text-sm border-black/10 dark:border-white/10">
+            ✨ Відкрито щодня з 08:00 до 21:00
+          </div>
+          <h1 class="mt-4 text-4xl md:text-6xl font-bold tracking-tight">Смак розкоші у кожній чашці</h1>
+          <p class="mt-4 muted md:text-lg">Спешіалті кава, десерти власного виробництва та гостинна атмосфера у центрі міста.</p>
+          <div class="mt-6 flex flex-wrap gap-3">
+            <a href="#menu" class="btn btn-primary">Переглянути меню</a>
+            <a href="#visit" class="btn">Як нас знайти</a>
+          </div>
+        </div>
+        <div class="relative">
+          <img src="https://images.unsplash.com/photo-1447933601403-0c6688de566e?q=80&w=1600&auto=format&fit=crop" alt="Кава та інтерʼєр" class="w-full h-[360px] md:h-[460px] object-cover rounded-3xl shadow-soft" />
+          <div class="hidden md:block absolute -bottom-6 -left-6">
+            <div class="glass border border-black/10 dark:border-white/10 rounded-2xl shadow-soft p-4 flex items-center gap-3">
+              ⭐ <div><p class="font-semibold leading-tight">4.9/5</p><p class="text-sm muted"><a href="#reviews" class="hover:underline">Відгуки гостей</a></p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Menu -->
+  <section id="menu" class="scroll-mt-24 py-16 md:py-20">
+    <div class="container">
+      <div class="flex items-center justify-between gap-4 flex-wrap">
+        <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Меню</h2>
+        <div class="flex items-center gap-2 w-full md:w-auto">
+          <div class="relative w-full md:w-72">
+            <input id="menu-search" class="w-full pl-9 pr-3 py-2 rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900" placeholder="Пошук напою чи десерту…" />
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 select-none" aria-hidden="true">🔎</span>
+          </div>
+          <button class="btn" data-cat="">Усі</button>
+        </div>
+      </div>
+
+      <div class="mt-4 flex flex-wrap gap-2">
+        <button class="btn" data-cat="espresso">Еспресо-бар</button>
+        <button class="btn" data-cat="signature">Фірмові напої</button>
+        <button class="btn" data-cat="filters">Фільтри</button>
+        <button class="btn" data-cat="cold">Холодні</button>
+        <button class="btn" data-cat="food">Десерти та снеки</button>
+        <div class="ml-auto flex items-center gap-2">
+          <span class="text-sm muted">Сортування:</span>
+          <button class="btn btn-primary" data-sort="popular">Популярні</button>
+          <button class="btn" data-sort="price">Ціна</button>
+        </div>
+      </div>
+
+      <div id="menu-grid" class="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Items -->
+        <article class="card p-5" data-item data-name="Еспресо" data-tag="espresso" data-price="75" data-rating="4.9">
+          <div class="flex gap-4">
+            <img src="https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?q=80&w=200&auto=format&fit=crop" alt="Еспресо" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+            <div class="flex-1">
+              <header class="flex items-center justify-between">
+                <h3 class="text-xl font-semibold">Еспресо</h3>
+                <span class="badge">75 ₴</span>
+              </header>
+              <p class="mt-2 muted">Класика з багатим тілом та кремою.</p>
+              <div class="mt-4 flex items-center justify-between">
+                <span class="text-sm">⭐ 4.9</span>
+                <span class="badge">espresso</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card p-5" data-item data-name="Американо" data-tag="espresso" data-price="80" data-rating="4.7">
+          <div class="flex gap-4">
+            <img src="https://www.coffeebeans.ph/storage/2023/07/americano.jpg" alt="Американо" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+            <div class="flex-1">
+              <header class="flex items-center justify-between">
+                <h3 class="text-xl font-semibold">Американо</h3>
+                <span class="badge">80 ₴</span>
+              </header>
+              <p class="mt-2 muted">Мʼякий смак, легке тіло.</p>
+              <div class="mt-4 flex items-center justify-between">
+                <span class="text-sm">⭐ 4.7</span>
+                <span class="badge">espresso</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card p-5" data-item data-name="Капучино" data-tag="signature" data-price="105" data-rating="4.8">
+          <div class="flex gap-4">
+            <img src="https://images.unsplash.com/photo-1572442388796-11668a67e53d?q=80&w=200&auto=format&fit=crop" alt="Капучино" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+            <div class="flex-1">
+              <header class="flex items-center justify-between">
+                <h3 class="text-xl font-semibold">Капучино</h3>
+                <span class="badge">105 ₴</span>
+              </header>
+              <p class="mt-2 muted">Молочна піна та збалансований смак.</p>
+              <div class="mt-4 flex items-center justify-between">
+                <span class="text-sm">⭐ 4.8</span>
+                <span class="badge">signature</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card p-5" data-item data-name="Флет вайт" data-tag="signature" data-price="115" data-rating="4.9">
+          <div class="flex gap-4">
+            <img src="https://images.immediate.co.uk/production/volatile/sites/30/2020/08/flat-white-d8ada0f.jpg?quality=90&resize=440,400" alt="Флет вайт" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+            <div class="flex-1">
+              <header class="flex items-center justify-between">
+                <h3 class="text-xl font-semibold">Флет вайт</h3>
+                <span class="badge">115 ₴</span>
+              </header>
+              <p class="mt-2 muted">Насичена молочна кава з подвійним еспресо.</p>
+              <div class="mt-4 flex items-center justify-between">
+                <span class="text-sm">⭐ 4.9</span>
+                <span class="badge">signature</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card p-5" data-item data-name="V60" data-tag="filters" data-price="120" data-rating="4.8">
+          <div class="flex gap-4">
+            <img src="https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=200&auto=format&fit=crop" alt="V60" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+            <div class="flex-1">
+              <header class="flex items-center justify-between">
+                <h3 class="text-xl font-semibold">V60</h3>
+                <span class="badge">120 ₴</span>
+              </header>
+              <p class="mt-2 muted">Чистий смак, розкритий теруар.</p>
+              <div class="mt-4 flex items-center justify-between">
+                <span class="text-sm">⭐ 4.8</span>
+                <span class="badge">filters</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card p-5" data-item data-name="Аеропрес" data-tag="filters" data-price="120" data-rating="4.6">
+          <div class="flex gap-4">
+            <img src="https://images.unsplash.com/photo-1507133750040-4a8f57021571?q=80&w=200&auto=format&fit=crop" alt="Аеропрес" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+            <div class="flex-1">
+              <header class="flex items-center justify-between">
+                <h3 class="text-xl font-semibold">Аеропрес</h3>
+                <span class="badge">120 ₴</span>
+              </header>
+              <p class="mt-2 muted">Соковитий профіль, виразна кислотність.</p>
+              <div class="mt-4 flex items-center justify-between">
+                <span class="text-sm">⭐ 4.6</span>
+                <span class="badge">filters</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card p-5" data-item data-name="Колд брю" data-tag="cold" data-price="130" data-rating="4.7">
+          <div class="flex gap-4">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRqQT79OMm_BLtTNTL4rZAsTNnmd5-WCsg0eg&s" alt="Колд брю" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+            <div class="flex-1">
+              <header class="flex items-center justify-between">
+                <h3 class="text-xl font-semibold">Колд брю</h3>
+                <span class="badge">130 ₴</span>
+              </header>
+              <p class="mt-2 muted">Холодна екстракція, шовковисте тіло.</p>
+              <div class="mt-4 flex items-center justify-between">
+                <span class="text-sm">⭐ 4.7</span>
+                <span class="badge">cold</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card p-5" data-item data-name="Еспресо тонік" data-tag="cold" data-price="135" data-rating="4.8">
+          <div class="flex gap-4">
+            <img src="https://www.wineenthusiast.com/wp-content/uploads/2023/07/07_23_Espresso_Tonic_HERO_Stocksy_4062559_1920x1280-1280x853.jpg" alt="Еспресо тонік" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+            <div class="flex-1">
+              <header class="flex items-center justify-between">
+                <h3 class="text-xl font-semibold">Еспресо тонік</h3>
+                <span class="badge">135 ₴</span>
+              </header>
+              <p class="mt-2 muted">Ігристий, цитрусовий, освіжає.</p>
+              <div class="mt-4 flex items-center justify-between">
+                <span class="text-sm">⭐ 4.8</span>
+                <span class="badge">cold</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card p-5" data-item data-name="Чізкейк Нью-Йорк" data-tag="food" data-price="145" data-rating="4.9">
+          <div class="flex gap-4">
+            <img src="https://images.unsplash.com/photo-1533134242443-d4fd215305ad?q=80&w=200&auto=format&fit=crop" alt="Чізкейк Нью-Йорк" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+            <div class="flex-1">
+              <header class="flex items-center justify-between">
+                <h3 class="text-xl font-semibold">Чізкейк Нью-Йорк</h3>
+                <span class="badge">145 ₴</span>
+              </header>
+              <p class="mt-2 muted">Класичний вершковий десерт.</p>
+              <div class="mt-4 flex items-center justify-between">
+                <span class="text-sm">⭐ 4.9</span>
+                <span class="badge">food</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card p-5" data-item data-name="Круасан мигдальний" data-tag="food" data-price="95" data-rating="4.7">
+          <div class="flex gap-4">
+            <img src="https://richanddelish.com/wp-content/uploads/2025/05/Almond-Croissants-1.jpg" alt="Круасан мигдальний" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+            <div class="flex-1">
+              <header class="flex items-center justify-between">
+                <h3 class="text-xl font-semibold">Круасан мигдальний</h3>
+                <span class="badge">95 ₴</span>
+              </header>
+              <p class="mt-2 muted">Хрумкий, з ніжною начинкою.</p>
+              <div class="mt-4 flex items-center justify-between">
+                <span class="text-sm">⭐ 4.7</span>
+                <span class="badge">food</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card p-5" data-item data-name="Латте" data-tag="signature" data-price="110" data-rating="4.8">
+          <div class="flex gap-4">
+            <img src="https://nucleuscoffee.com/cdn/shop/articles/Latte-recipe.jpg" alt="Латте" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+            <div class="flex-1">
+              <header class="flex items-center justify-between">
+                <h3 class="text-xl font-semibold">Латте</h3>
+                <span class="badge">110 ₴</span>
+              </header>
+              <p class="mt-2 muted">М'який смак з молочною піною та еспресо.</p>
+              <div class="mt-4 flex items-center justify-between">
+                <span class="text-sm">⭐ 4.8</span>
+                <span class="badge">signature</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card p-5" data-item data-name="Тірамісу" data-tag="food" data-price="155" data-rating="4.9">
+          <div class="flex gap-4">
+            <img src="https://bakewithzoha.com/wp-content/uploads/2025/06/tiramisu-featured.jpg" alt="Тірамісу" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+            <div class="flex-1">
+              <header class="flex items-center justify-between">
+                <h3 class="text-xl font-semibold">Тірамісу</h3>
+                <span class="badge">155 ₴</span>
+              </header>
+              <p class="mt-2 muted">Класичний італійський десерт з кавою та маскарпоне.</p>
+              <div class="mt-4 flex items-center justify-between">
+                <span class="text-sm">⭐ 4.9</span>
+                <span class="badge">food</span>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- About -->
+  <section id="about" class="scroll-mt-24 py-16 md:py-20 border-t border-black/10 dark:border-white/10">
+    <div class="container grid md:grid-cols-2 gap-10 items-center">
+      <div>
+        <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Про нас</h2>
+        <p class="mt-4 muted md:text-lg">Ми — локальна кавʼярня третьої хвилі. Закуповуємо зерно напряму у фермерів, обсмажуємо невеликими партіями та готуємо з турботою.</p>
+        <ul class="mt-6 grid gap-3">
+          <li class="flex items-start gap-3"><span class="badge">1</span> Сезонне меню та гості-бариста.</li>
+          <li class="flex items-start gap-3"><span class="badge">2</span> Альтернативні види молока без доплат.</li>
+          <li class="flex items-start gap-3"><span class="badge">3</span> Екологічні паковання та знижка за свій термокухоль.</li>
+        </ul>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <img class="rounded-3xl h-44 w-full object-cover" src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=1200&auto=format&fit=crop" alt="Бариста готує каву" />
+        <img class="rounded-3xl h-44 w-full object-cover" src="https://images.unsplash.com/photo-1470337458703-46ad1756a187?q=80&w=1200&auto=format&fit=crop" alt="Зерна кави" />
+        <img class="rounded-3xl h-44 w-full object-cover" src="https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=1200&auto=format&fit=crop" alt="Капучино з латте-арт" />
+        <img class="rounded-3xl h-44 w-full object-cover" src="https://images.unsplash.com/photo-1522992319-0365e5f11656?q=80&w=1200&auto=format&fit=crop" alt="Затишний інтерʼєр" />
+      </div>
+    </div>
+  </section>
+
+  <!-- Gallery -->
+  <section id="gallery" class="scroll-mt-24 py-16 md:py-20 border-t border-black/10 dark:border-white/10">
+    <div class="container">
+      <div class="flex items-center justify-between gap-4 flex-wrap">
+        <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Галерея</h2>
+        <p class="muted">Наш настрій у світлинах</p>
+      </div>
+      <div class="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4">
+        <img src="https://images.unsplash.com/photo-1447933601403-0c6688de566e?q=80&w=1200&auto=format&fit=crop" alt="Світлина 1" class="h-44 md:h-56 w-full object-cover rounded-2xl" />
+        <img src="https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?q=80&w=1200&auto=format&fit=crop" alt="Світлина 2" class="h-44 md:h-56 w-full object-cover rounded-2xl" />
+        <img src="https://www.americanolounge.com/wp-content/uploads/2024/08/What-is-American-style-coffee_270222935.webp" alt="Світлина 3" class="h-44 md:h-56 w-full object-cover rounded-2xl" />
+        <img src="https://richanddelish.com/wp-content/uploads/2025/05/Almond-Croissants-1.jpg" alt="Світлина 4" class="h-44 md:h-56 w-full object-cover rounded-2xl" />
+        <img src="https://images.immediate.co.uk/production/volatile/sites/30/2021/05/Iced-Mocha-db3c51a.jpg?quality=90&resize=708,643" alt="Світлина 5" class="h-44 md:h-56 w-full object-cover rounded-2xl" />
+        <img src="https://images.unsplash.com/photo-1470337458703-46ad1756a187?q=80&w=1200&auto=format&fit=crop" alt="Світлина 6" class="h-44 md:h-56 w-full object-cover rounded-2xl" />
+      </div>
+    </div>
+  </section>
+
+  <!-- Vacancies -->
+  <section id="vacancies" class="scroll-mt-24 py-16 md:py-20 border-t border-black/10 dark:border-white/10">
+    <div class="container">
+      <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-center">Вакансії</h2>
+      <p class="mt-3 muted text-center">Приєднуйтесь до нашої команди та станьте частиною Ivory Café</p>
+      
+      <div class="mt-12 grid md:grid-cols-3 gap-8">
+        <!-- Vacancy 1 -->
+        <article class="card p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="h-12 w-12 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-xl">
+              ☕
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold">Бариста</h3>
+              <p class="text-sm muted">Повна зайнятість</p>
+            </div>
+          </div>
+          <div class="space-y-3">
+            <p class="muted leading-relaxed">Шукаємо досвідченого бариста для роботи в команді. Відмінні навички роботи з еспресо-машиною та знання різних методів заварювання кави.</p>
+            <ul class="text-sm space-y-1">
+              <li class="flex items-center gap-2">
+                <span class="text-green-500">✓</span>
+                Досвід роботи від 1 року
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-green-500">✓</span>
+                Знання англійської мови
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-green-500">✓</span>
+                Комунікабельність
+              </li>
+            </ul>
+            <div class="flex items-center justify-between mt-4 pt-4 border-t border-black/10 dark:border-white/10">
+              <span class="font-semibold text-green-600 dark:text-green-400">25 000 - 35 000 ₴</span>
+               <a href="application.html" class="btn btn-primary text-sm">Відгукнутися</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Vacancy 2 -->
+        <article class="card p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="h-12 w-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-xl">
+              🍰
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold">Кондитер</h3>
+              <p class="text-sm muted">Повна зайнятість</p>
+            </div>
+          </div>
+          <div class="space-y-3">
+            <p class="muted leading-relaxed">Потрібен креативний кондитер для створення унікальних десертів та випічки. Робота з натуральними інгредієнтами та розробка нових рецептів.</p>
+            <ul class="text-sm space-y-1">
+              <li class="flex items-center gap-2">
+                <span class="text-green-500">✓</span>
+                Освіта в галузі кулінарії
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-green-500">✓</span>
+                Досвід роботи від 2 років
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-green-500">✓</span>
+                Креативність та уважність
+              </li>
+            </ul>
+            <div class="flex items-center justify-between mt-4 pt-4 border-t border-black/10 dark:border-white/10">
+              <span class="font-semibold text-green-600 dark:text-green-400">30 000 - 40 000 ₴</span>
+               <a href="application.html" class="btn btn-primary text-sm">Відгукнутися</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Vacancy 3 -->
+        <article class="card p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="h-12 w-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xl">
+              🛍️
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold">Адміністратор</h3>
+              <p class="text-sm muted">Повна зайнятість</p>
+            </div>
+          </div>
+          <div class="space-y-3">
+            <p class="muted leading-relaxed">Шукаємо відповідального адміністратора для управління закладом, роботи з гостями та контролю якості сервісу. Організація робочого процесу команди.</p>
+            <ul class="text-sm space-y-1">
+              <li class="flex items-center gap-2">
+                <span class="text-green-500">✓</span>
+                Досвід управління від 1 року
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-green-500">✓</span>
+                Організаторські здібності
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-green-500">✓</span>
+                Стресостійкість
+              </li>
+            </ul>
+            <div class="flex items-center justify-between mt-4 pt-4 border-t border-black/10 dark:border-white/10">
+              <span class="font-semibold text-green-600 dark:text-green-400">28 000 - 38 000 ₴</span>
+               <a href="application.html" class="btn btn-primary text-sm">Відгукнутися</a>
+            </div>
+          </div>
+        </article>
+
+  </section>
+
+  <!-- Visit -->
+  <section id="visit" class="scroll-mt-24 py-16 md:py-20 border-t border-black/10 dark:border-white/10">
+    <div class="container grid lg:grid-cols-2 gap-8 items-start">
+      <div>
+        <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Завітайте</h2>
+        <div class="mt-4 grid gap-3 muted">
+          <p>📍 вул. Прикладна, 10, Київ</p>
+          <p>🕗 Пн–Нд: 08:00–21:00</p>
+          <p>📞 +380 (44) 000 00 00</p>
+          <p>✉️ hello@ivory.cafe</p>
+          <div class="flex items-center gap-2 mt-2">
+            <a class="btn" href="#" aria-label="Instagram">Instagram</a>
+            <a class="btn" href="#" aria-label="Facebook">Facebook</a>
+          </div>
+        </div>
+      </div>
+      <div class="rounded-3xl overflow-hidden border border-black/10 dark:border-white/10">
+        <iframe title="Мапа розташування" class="w-full h-[360px]" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2540.907944037522!2d30.516382776693597!3d50.44407578896847!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x40d4ce58b3f0a8df%3A0x3b0d7f4ab7d9a6a5!2z0LLRg9C70LjRhtGPINCf0YDQvtC60YPRgNCw0Y8g0JrQu9GD0LPQsNC00YDQvtCy0L4sIDI0INC60L7QvNC_0YDQvtC00L7QstCwLCAxLCDQmtC40ZfQsiDQmtC-0YDQv9C10YHRgdC60LDRjywgMDAxMjI!5e0!3m2!1suk!2sua!4v1715521999999"></iframe>
+      </div>
+    </div>
+  </section>
+
+  <!-- Reviews -->
+  <section id="reviews" class="scroll-mt-24 py-16 md:py-20 border-t border-black/10 dark:border-white/10">
+    <div class="container">
+      <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-center">Відгуки наших гостей</h2>
+      <p class="mt-3 muted text-center">Що кажуть про нас наші відвідувачі</p>
+      
+      <div class="mt-12 grid md:grid-cols-3 gap-8">
+        <!-- Review 1 -->
+        <article class="card p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="h-12 w-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white font-bold text-lg">
+              А
+            </div>
+            <div>
+              <h3 class="font-semibold">Анна Коваленко</h3>
+              <div class="flex items-center gap-1 mt-1">
+                <span class="text-yellow-400">⭐⭐⭐⭐⭐</span>
+                <span class="text-sm muted">5.0</span>
+              </div>
+            </div>
+          </div>
+          <p class="muted leading-relaxed">"Найкраща кава в місті! Атмосфера просто чарівна, а флет вайт — просто божественний. Персонал дуже привітний і професійний. Обов'язково повернуся!"</p>
+          <p class="text-sm muted mt-4">Відвідала 2 тижні тому</p>
+        </article>
+
+        <!-- Review 2 -->
+        <article class="card p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="h-12 w-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
+              М
+            </div>
+            <div>
+              <h3 class="font-semibold">Михайло Петренко</h3>
+              <div class="flex items-center gap-1 mt-1">
+                <span class="text-yellow-400">⭐⭐⭐⭐⭐</span>
+                <span class="text-sm muted">4.8</span>
+              </div>
+            </div>
+          </div>
+          <p class="muted leading-relaxed">"Чудове місце для роботи! WiFi стабільний, столи зручні, а кава V60 просто смачна. Десерти теж на висоті. Рекомендую для зустрічей та роботи."</p>
+          <p class="text-sm muted mt-4">Відвідав тиждень тому</p>
+        </article>
+
+        <!-- Review 3 -->
+        <article class="card p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="h-12 w-12 rounded-full bg-gradient-to-br from-green-400 to-teal-500 flex items-center justify-center text-white font-bold text-lg">
+              О
+            </div>
+            <div>
+              <h3 class="font-semibold">Олена Сидоренко</h3>
+              <div class="flex items-center gap-1 mt-1">
+                <span class="text-yellow-400">⭐⭐⭐⭐⭐</span>
+                <span class="text-sm muted">5.0</span>
+              </div>
+            </div>
+          </div>
+          <p class="muted leading-relaxed">"Прекрасна кав'ярня з унікальним смаком! Особливо сподобався еспресо тонік — освіжаючий та незвичайний. Інтер'єр дуже затишний, ідеально для побачень."</p>
+          <p class="text-sm muted mt-4">Відвідала 3 дні тому</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section id="contact" class="scroll-mt-24 py-16 md:py-20 border-t border-black/10 dark:border-white/10">
+    <div class="container max-w-3xl">
+      <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Звʼяжіться з нами</h2>
+      <p class="mt-3 muted">Бронювання, співпраця чи зворотний звʼязок — напишіть нам.</p>
+      <form id="contact-form" class="mt-6 grid gap-3">
+        <div class="grid md:grid-cols-2 gap-3">
+          <input required placeholder="Ваше імʼя" class="rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 px-3 py-2" />
+          <input required type="email" placeholder="Email" class="rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 px-3 py-2" />
+        </div>
+        <input placeholder="Тема" class="rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 px-3 py-2" />
+        <textarea required placeholder="Повідомлення" class="rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 px-3 py-3 min-h-32"></textarea>
+        <div class="flex items-center justify-between">
+          <p class="text-sm muted">Ми поважаємо вашу приватність.</p>
+          <button type="submit" class="btn btn-primary">Надіслати</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-black/10 dark:border-white/10">
+    <div class="container py-10 flex flex-col md:flex-row items-center justify-between gap-4">
+      <p class="text-sm muted">© <span id="year"></span> Ivory Café. Всі права захищені.</p>
+      <div class="flex items-center gap-2 text-sm">
+        <a class="hover:underline" href="#menu">Меню</a>
+        <span class="muted">•</span>
+        <a class="hover:underline" href="#contact">Контакти</a>
+        <span class="muted">•</span>
+        <a class="hover:underline" href="#">Політика конфіденційності</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
